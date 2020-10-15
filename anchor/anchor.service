@@ -1,0 +1,17 @@
+[Unit]
+Description=Tail Anchor Daemon
+Documentation=man:tail
+Requires=network.target
+After=network.target
+
+[Service]
+Type=simple
+Nice=-20
+Restart=always
+RestartSec=5
+WorkingDirectory=/opt/anchor
+ExecStart=/opt/anchor/anchord.py -c tail.conf -L logging.conf
+
+[Install]
+WantedBy=multi-user.target
+

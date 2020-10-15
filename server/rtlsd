@@ -1,0 +1,2 @@
+#!/bin/bash
+cd /opt/rtls/bin && exec /usr/bin/python3 main.py "$@"
