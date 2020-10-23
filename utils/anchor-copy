@@ -1,0 +1,45 @@
+#!/bin/bash
+
+N=$#
+M=$((N-1))
+
+DST=${@: -1:1}
+ARG=${@: 1:$M}
+
+PI_HOST=${PI_HOST:-'anchor'}
+PI_LIST=${PI_LIST:-'01 02 03 04 05 06 07 08 09 10 11 12 13 14 15'}
+PI_DOMAIN=${PI_DOMAIN:-'.qs.unipart.io'}
+
+PWAIT=${PWAIT:-1}
+IPVER=${IPVER:--6}
+
+
+alive()
+{
+    ping ${IPVER} -c 3 -i 0.2 -W ${PWAIT} -q "$@" 2>/dev/null >/dev/null
+}
+
+scopy()
+{
+    if alive ${1}
+    then
+	scp ${IPVER} ${ARG} root@${1}:${DST} 2>&1 |
+ 	    while read LINE
+	    do
+		echo "${1}: ${LINE}"
+	    done
+   else
+    	echo "${1}: DEAD"
+    fi
+}
+
+
+echo "Copying ${ARG} to ${DST}"
+
+for X in ${PI_LIST}
+do
+	scopy ${PI_HOST}${X}${PI_DOMAIN} &
+done
+
+wait
+

@@ -1,0 +1,68 @@
+#!/bin/bash
+
+EXEC="$@"
+
+PI_HOST=${PI_HOST:-'anchor'}
+PI_LIST=${PI_LIST:-'01 02 03 04 05 06 07 08 09 10 11 12 13 14 15'}
+PI_DOMAIN=${PI_DOMAIN:-.qs.unipart.io}
+
+IPVER=${IPVER:--6}
+PWAIT=${PWAIT:-1}
+SSHA=${IPVER}
+
+if [ -n "${PI_PROXY}" ]
+then
+    SSH="ssh -J ${PI_PROXY}"
+    PNG="true"
+else
+    SSH="ssh"
+    PNG="ping"
+fi
+
+
+
+alive()
+{
+    ${PNG} ${IPVER} -c 3 -i 0.2 -W ${PWAIT} -q ${1} 2>/dev/null >/dev/null
+}
+
+sexec()
+{
+    if alive ${1}
+    then
+	${SSH} ${SSHA} root@${1} "${EXEC}" 2>&1 |
+	    while read LINE
+	    do
+		echo "${1}: ${LINE}"
+	    done
+    else
+    	echo "${1}: DEAD"
+    fi
+}
+
+
+case ${0##*/anchor-} in
+    exec)	EXEC="$@" ;;
+    dmesg)	EXEC='dmesg -w' ;;
+    eui)	EXEC='dmesg | fgrep EUI' ;;
+    dw)		EXEC='dmesg | fgrep dw1' ;;
+    stop)	EXEC='systemctl stop anchor ; systemctl status anchor | fgrep Active: | cut -c 12-' ;;
+    start)	EXEC='systemctl start anchor ; systemctl status anchor | fgrep Active: | cut -c 12-' ;;
+    status)	EXEC='systemctl status anchor | fgrep Active: | cut -c 12-' ;;
+    uname)  	EXEC='uname -a' ;;
+    kernel)	EXEC='uname -rv' ;;
+    uptime) 	EXEC='uptime' ;;
+    reboot)	EXEC='reboot -f' ;;
+    ntp)	EXEC='chronyc tracking | fgrep "System time"' ;;
+    ppm)	EXEC='chronyc tracking | fgrep "Frequency"' ;;
+    df)         EXEC='df -h | fgrep dev/root' ;;
+    interval)   EXEC="echo $1 > /sys/devices/platform/soc/3f204000.spi/spi_master/spi0/spi0.0/dw1000/stats_interval"
+esac
+
+for X in ${PI_LIST}
+do
+    sexec ${PI_HOST}${X}${PI_DOMAIN} &
+done
+
+wait
+
